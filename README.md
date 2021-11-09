@@ -1,3 +1,6 @@
+# Change
+
+
 # Head Network Distillation for Split Computing
 
 The official implementations of Head Network Distillation (HND) studies for image classification tasks:
