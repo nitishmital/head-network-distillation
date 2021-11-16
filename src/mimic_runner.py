@@ -168,17 +168,26 @@ def distill(train_loader, valid_loader, input_shape, aux_weight, config, device,
 
 
 def run(args):
+    # Set device to GPU if that exists
     distributed, device_ids = main_util.init_distributed_mode(args.world_size, args.dist_url)
     device = torch.device(args.device if torch.cuda.is_available() else 'cpu')
+    # Benchmark to find the fastest algorithm
     if torch.cuda.is_available():
         cudnn.benchmark = True
 
+    # Load arguments
     print(args)
+    # Config file
     config = yaml_util.load_yaml_file(args.config)
+    # Dataset subset of config
     dataset_config = config['dataset']
+    # Set input shape
     input_shape = config['input_shape']
+    # Training parameters
     train_config = config['train']
+    # Testing parameters
     test_config = config['test']
+    # Load data into Dataloader:s
     train_loader, valid_loader, test_loader =\
         dataset_util.get_data_loaders(dataset_config, batch_size=train_config['batch_size'],
                                       rough_size=train_config['rough_size'], reshape_size=input_shape[1:3],
@@ -190,15 +199,15 @@ def run(args):
 
     org_model, teacher_model_type = mimic_util.get_org_model(teacher_model_config, device)
     if not args.student_only:
-        if distributed:
-            org_model = DataParallel(org_model, device_ids=device_ids)
+        # if distributed:
+        #     org_model = DataParallel(org_model, device_ids=device_ids)
         evaluate(org_model, test_loader, device, title='[Original model]')
 
     mimic_model = mimic_util.get_mimic_model(config, org_model, teacher_model_type, teacher_model_config, device)
     mimic_model_without_dp = mimic_model.module if isinstance(mimic_model, DataParallel) else mimic_model
     file_util.save_pickle(mimic_model_without_dp, config['mimic_model']['ckpt'])
-    if distributed:
-        mimic_model = DistributedDataParallel(mimic_model_without_dp, device_ids=device_ids)
+    # if distributed:
+    #     mimic_model = DistributedDataParallel(mimic_model_without_dp, device_ids=device_ids)
     evaluate(mimic_model, test_loader, device, title='[Mimic model]')
 
 
